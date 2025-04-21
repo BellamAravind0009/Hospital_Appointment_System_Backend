@@ -14,13 +14,19 @@ load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 class HospitalChatAssistant:
-    def __init__(self, knowledge_base_text):
+    def __init__(self, knowledge_base_text, symptom_data=None, schedule_data=None):
         # Split the knowledge base into chunks for better retrieval
         self.chunks = self._chunk_text(knowledge_base_text)
         
         # Create a vectorizer and embeddings for the chunks
         self.vectorizer = TfidfVectorizer()
         self.chunk_embeddings = self.vectorizer.fit_transform(self.chunks)
+        
+        # Load symptom data if provided
+        self.symptom_data = symptom_data or {}
+        
+        # Load schedule data if provided
+        self.schedule_data = schedule_data or {}
         
         # Additional context for the assistant
         self.context = {
@@ -29,6 +35,13 @@ class HospitalChatAssistant:
             "payment_methods": ["Pay Now (Razorpay UPI)", "Pay Later"],
             "hospital_name": "Your Hospital Name"
         }
+        
+        # Medical disclaimer for symptom-related responses
+        self.medical_disclaimer = """
+        IMPORTANT: This is not a substitute for professional medical advice. 
+        For emergencies, please call emergency services immediately. 
+        The symptom information provided is for informational purposes only.
+        """
         
         # Initialize the Gemini model
         self.model = genai.GenerativeModel('gemini-1.5-pro')
@@ -66,21 +79,116 @@ class HospitalChatAssistant:
         # Return top chunks and their scores
         return [(self.chunks[i], similarity_scores[i]) for i in top_indices if similarity_scores[i] > 0.1]
     
+    def identify_symptoms(self, symptoms_text):
+        """
+        Process symptom descriptions and return relevant information
+        """
+        # Convert symptoms to lowercase for matching
+        symptoms_text_lower = symptoms_text.lower()
+        
+        # Look for symptom keywords in the text
+        matched_symptoms = []
+        for symptom, info in self.symptom_data.items():
+            if symptom.lower() in symptoms_text_lower:
+                matched_symptoms.append((symptom, info))
+        
+        if not matched_symptoms:
+            return "I couldn't identify specific symptoms from your description. Could you provide more details about what you're experiencing?"
+            
+        # Format response with matched symptoms
+        response = "Based on the symptoms you've described, here's some information:\n\n"
+        
+        for symptom, info in matched_symptoms:
+            response += f"**{symptom}**\n"
+            response += f"Possible conditions: {', '.join(info['possible_conditions'])}\n"
+            response += f"Recommended action: {info['recommendation']}\n\n"
+            
+        response += f"\n{self.medical_disclaimer}"
+        
+        return response
+    
+    def get_schedule_info(self, query):
+        """Retrieve relevant schedule information based on query"""
+        if not self.schedule_data:
+            return "I don't have detailed schedule information available."
+            
+        # Extract day or department from query if mentioned
+        days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+        departments = list(self.schedule_data.get("departments", {}).keys())
+        
+        day_mentioned = next((day for day in days if day in query.lower()), None)
+        dept_mentioned = next((dept for dept in departments if dept.lower() in query.lower()), None)
+        
+        if day_mentioned and dept_mentioned:
+            # Return specific department schedule for a day
+            try:
+                schedule = self.schedule_data["departments"][dept_mentioned]["schedule"][day_mentioned]
+                return f"{dept_mentioned} hours on {day_mentioned.capitalize()}: {schedule}"
+            except KeyError:
+                return f"I don't have specific schedule information for {dept_mentioned} on {day_mentioned}."
+        
+        elif day_mentioned:
+            # Return general hospital hours for that day
+            try:
+                hours = self.schedule_data["general_hours"][day_mentioned]
+                return f"Hospital hours on {day_mentioned.capitalize()}: {hours}"
+            except KeyError:
+                return f"I don't have general hospital hours information for {day_mentioned}."
+                
+        elif dept_mentioned:
+            # Return department schedule for all days
+            try:
+                dept_schedule = self.schedule_data["departments"][dept_mentioned]["schedule"]
+                response = f"{dept_mentioned} schedule:\n"
+                for day, hours in dept_schedule.items():
+                    response += f"- {day.capitalize()}: {hours}\n"
+                return response
+            except KeyError:
+                return f"I don't have schedule information for {dept_mentioned}."
+        
+        else:
+            # Return general hospital hours
+            try:
+                response = "Hospital general hours:\n"
+                for day, hours in self.schedule_data["general_hours"].items():
+                    response += f"- {day.capitalize()}: {hours}\n"
+                return response
+            except KeyError:
+                return "I don't have detailed schedule information available."
+    
     def generate_response(self, query, chat_history=None):
         """Generate a response using Gemini based on the query and retrieved information"""
         # Initialize chat history if not provided
         if chat_history is None:
             chat_history = []
         
+        # Initialize context info
+        context_info = ""
+        
+        # Check if this is a symptom query
+        if any(keyword in query.lower() for keyword in ["symptom", "pain", "feeling", "hurt", "ache", "sick", "fever", "cough"]):
+            # Try to identify symptoms first
+            symptom_response = self.identify_symptoms(query)
+            
+            # Include symptom response in the context for Gemini
+            context_info = f"[Symptom identification response: {symptom_response}]\n\n"
+        
+        # Check if this is a schedule query
+        if any(keyword in query.lower() for keyword in ["schedule", "hours", "timing", "when", "open", "close", "available"]):
+            schedule_info = self.get_schedule_info(query)
+            context_info += f"[Hospital schedule information: {schedule_info}]\n\n"
+        
         # Retrieve relevant chunks from knowledge base
         relevant_chunks = self._retrieve_relevant_chunks(query)
         
-        # If no relevant information found
-        if not relevant_chunks:
+        # If no relevant information found in specialized processors
+        if not context_info and not relevant_chunks:
             context_info = "I don't have specific information about that in my knowledge base."
-        else:
+        elif relevant_chunks:
             # Combine the relevant chunks into context
-            context_info = "\n\n".join([chunk for chunk, score in relevant_chunks])
+            if context_info:
+                context_info += "\n\n"
+            context_info += "\n\n".join([chunk for chunk, score in relevant_chunks])
         
         # Keep just recent history to avoid token limits
         if len(chat_history) > 4:  # Keep just the last 2 exchanges
@@ -88,7 +196,7 @@ class HospitalChatAssistant:
         
         # Construct the prompt for Gemini
         system_prompt = f"""You are a helpful hospital appointment assistant. 
-You help patients with booking appointments, understanding payment options, and other hospital-related queries.
+You help patients with booking appointments, understanding payment options, symptom assessment, and other hospital-related queries.
 Use ONLY the following context to answer the user's question. If the information is not in the context, 
 politely say you don't have that specific information and offer to help with related topics you do know about.
 
@@ -100,7 +208,7 @@ Additional system information:
 - Payment methods: {', '.join(self.context['payment_methods'])}
 - Hospital Name: {self.context['hospital_name']}
 
-Be concise, friendly, and helpful in your responses."""
+Be concise, friendly, and helpful in your responses. For medical queries, always emphasize the importance of consulting a healthcare professional."""
         
         try:
             # Start a fresh chat
