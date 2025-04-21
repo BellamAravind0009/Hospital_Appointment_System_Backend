@@ -49,7 +49,40 @@ of doctors and their available slots based on current scheduling data.
 8. What time should I arrive for my appointment? 
 To ensure a smooth experience, it is recommended to arrive at least 
 15-20 minutes before your token number is expected to be called. 
+
+
+
+Technical Support:
+
+Login issues:
+Ensure credentials are correct. if needed  create new account or contact support.
+
+Payment issues:
+If payment fails but the amount is deducted, wait a few minutes or check your “Payment History in the payment app that you used.”
+
+Website not working:
+Clear your browser cache, check your internet connection, or use another browser. Contact support if needed
  
+
+ General Queries:
+
+What should I bring?
+Bring your hospital ID (if available), government-issued ID, past prescriptions, and your token number.
+
+Can I book for family members?
+Yes. Add their profiles under the "Family Profiles" section and book on their behalf.
+
+Are video consultations available?
+If supported by the hospital, you will see a “Video Consultation” option while booking.
+
+
+Doctor Schedule Information:
+
+You can view available doctors and their schedules in the "Book Appointment" section.
+
+Clicking on a doctor's name will show their profile, including specialization and working hours.
+
+
 Technical Workflows: 
  
 Authentication: 
@@ -77,3 +110,39 @@ Users can fetch their appointments through the endpoint (/api/my-
 appointments/), which returns a list of all bookings associated with the 
 logged-in user. Appointments can be filtered based on date, status, or 
 token number.
+
+
+Medical Assistance Information:
+
+What should I do if I have an emergency?
+For medical emergencies, please call emergency services (ambulance) immediately 
+or go to the nearest emergency room. Do not wait for an appointment or consultation.
+Signs of emergency include severe chest pain, difficulty breathing, severe 
+bleeding, sudden severe pain, major injuries, or loss of consciousness.
+
+When should I see a doctor vs. use the chat assistant?
+The chat assistant can help with basic symptom information, scheduling, and 
+general hospital questions. However, it is not a substitute for medical advice.
+You should consult a doctor for:
+- Persistent symptoms that don't improve
+- Worsening of any condition
+- Any concerning new symptoms
+- Medication questions or prescription needs
+- Follow-up after treatments or procedures
+
+How can I get help with identifying symptoms?
+You can describe your symptoms to the chat assistant, which will provide 
+general information about possible conditions and recommendations. For example:
+"I've had a headache for two days and feel nauseous" or "My child has a fever 
+and cough. What should I do?"
+
+Which specialists are available at the hospital?
+Our hospital has specialists in Cardiology, Orthopedics, Pediatrics, Dermatology,
+Neurology, Gynecology, ENT, Ophthalmology, and General Medicine. You can ask
+about specific department schedules or doctor availability.
+
+What should I do before my appointment?
+Before your appointment, prepare a list of your symptoms, when they started,
+any medications you're taking, and questions you want to ask the doctor.
+Bring any relevant medical records, previous test results, and your health
+insurance information.
