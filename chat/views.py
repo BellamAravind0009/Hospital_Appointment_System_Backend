@@ -8,12 +8,18 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from .serializers import ChatRequestSerializer, ChatResponseSerializer, ChatSessionSerializer
 from .models import ChatSession, ChatMessage
 from .gemini_assistant import HospitalChatAssistant, load_knowledge_base
+from .data import SYMPTOM_DATA, HOSPITAL_SCHEDULE
 
 # Load knowledge base
-knowledge_base_text = load_knowledge_base()
 
+knowledge_base_text = load_knowledge_base()
 # Initialize the assistant
-assistant = HospitalChatAssistant(knowledge_base_text)
+
+assistant = HospitalChatAssistant(
+    knowledge_base_text,
+    symptom_data=SYMPTOM_DATA,
+    schedule_data=HOSPITAL_SCHEDULE
+)
 
 class ChatView(APIView):
     """
