@@ -33,7 +33,7 @@ class HospitalChatAssistant:
             "consultation_fee": 500,
             "currency": "₹",
             "payment_methods": ["Pay Now (Razorpay UPI)", "Pay Later"],
-            "hospital_name": "Your Hospital Name"
+            "hospital_name": "Holistic Hospitals"
         }
         
         # Medical disclaimer for symptom-related responses
