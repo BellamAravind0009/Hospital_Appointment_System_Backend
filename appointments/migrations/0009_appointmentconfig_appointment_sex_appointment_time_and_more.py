@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
             name='AppointmentConfig',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('max_daily_appointments', models.PositiveIntegerField(default=30)),
+                ('max_daily_appointments', models.PositiveIntegerField(default=4)),
                 ('max_per_hour', models.PositiveIntegerField(default=3)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
